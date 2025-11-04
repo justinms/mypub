@@ -14,11 +14,11 @@ jobs:
   python-reply:
     # 重要：此处的 'if' 条件是整个流程的关键
     # 1. contains(...): 检查评论内容是否包含你的机器人或你的用户名。
-    #    你需要将 '@your-bot-name' 替换为真正要监听的用户名，例如 '@actionbot' 或你自己的 GitHub 用户名。
+    #    你需要将 '@your-bot-name' 替换为真正要监听的用户名，例如 '@github-actions[bot]' 或你自己的 GitHub 用户名。
     # 2. github.event.comment.user.login != '...': 防止机器人回复自己的评论，从而陷入无限循环。
     if: >-
-      contains(github.event.comment.body, '@actionbot') &&
-      github.event.comment.user.login != 'actionbot'
+      contains(github.event.comment.body, '@github-actions[bot]') &&
+      github.event.comment.user.login != 'github-actions[bot]'
       
     # 运行此任务的虚拟机环境
     runs-on: ubuntu-latest
