@@ -1,18 +1,56 @@
-name: a github action demo
-run-name: ${{ github.actor }} is testing out github actions
-on: [push]
+# 工作流程的名称
+name: Bot Reply on Issue Mention
+
+# 触发条件：当 an issue 中有新的评论创建时
+on:
+  issue_comment:
+    types: [created]
+
+# 授予工作流程写 issue 的权限
+permissions:
+  issues: write
+
 jobs:
-  Explore-Github-Actions:
+  python-reply:
+    # 重要：此处的 'if' 条件是整个流程的关键
+    # 1. contains(...): 检查评论内容是否包含你的机器人或你的用户名。
+    #    你需要将 '@your-bot-name' 替换为真正要监听的用户名，例如 '@github-actions[bot]' 或你自己的 GitHub 用户名。
+    # 2. github.event.comment.user.login != '...': 防止机器人回复自己的评论，从而陷入无限循环。
+    if: >-
+      contains(github.event.comment.body, '@justinms') &&
+      github.event.comment.user.login != 'justinms'
+      
+    # 运行此任务的虚拟机环境
     runs-on: ubuntu-latest
+
     steps:
-      - run: echo "the job was triggered by a ${{ github.event_name }}"
-      - run: echo " runing on ${{ runner.os }} server hosted by github "
-      - run: echo "The name of your branch is ${{ github.ref }} and your repository is ${{ github.repository }}."
-      - name: Check out repo code
-        uses: actions/checkout@v5
-      - run: echo "the code was cloned"
-      - run: echo "workflow is ready"
-      - name: list files in the repo
+      # 步骤 1: 检出（Checkout）你的代码
+      # 这样 runner 虚拟机上才能访问到你的 app.py 文件
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 步骤 2: 设置 Python 环境
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      # 步骤 3: 运行 Python 脚本并捕获输出
+      # - 我们给这个步骤一个 id: 'run_script'，以便后续步骤可以引用它的输出。
+      # - 使用 ${{...}} 上下文变量来安全地传入 issue 标题和评论内容。
+      # - `|` 允许多行命令。我们将 python 脚本的输出通过 echo 重定向到 GITHUB_OUTPUT。
+      - name: Run Python script to generate response
+        id: run_script
         run: |
-          ls ${{ github.workspace }}
-      - run: echo "this job is ${{ job.status }}."
+          response=$(python app.py --title "${{ github.event.issue.title }}" --message "${{ github.event.comment.body }}")
+          echo "response_body=$response" >> $GITHUB_OUTPUT
+
+      # 步骤 4: 将脚本的输出作为新评论发布到 issue 中
+      # 使用一个非常流行的 action 来简化评论操作
+      - name: Create comment on issue
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          # 指定要评论的 issue 编号
+          issue-number: ${{ github.event.issue.number }}
+          # 评论的正文，引用上一步 (id: run_script) 的输出 (key: response_body)
+          body: ${{ steps.run_script.outputs.response_body }}
