@@ -1,0 +1,20 @@
+name: Debug Issue Comment
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  issues: write
+
+jobs:
+  dump-event:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Print github.event summary
+        run: |
+          echo "---- GITHUB EVENT SUMMARY ----"
+          echo "COMMENT BODY: ${{ github.event.comment.body }}"
+          echo "COMMENT LOGIN: ${{ github.event.comment.user.login }}"
+          echo "ISSUE NUMBER: ${{ github.event.issue.number }}"
+          echo "ISSUE TITLE: ${{ github.event.issue.title }}"
